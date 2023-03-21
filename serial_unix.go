@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"go.bug.st/serial/unixutils"
@@ -69,29 +70,28 @@ func (port *unixPort) Read(p []byte) (int, error) {
 		deadline = time.Now().Add(port.readTimeout)
 	}
 
-	fds := unixutils.NewFDSet(port.handle, port.closeSignal.ReadFD())
+	fds := []unix.PollFd{{Fd: int32(port.handle), Events: unix.POLLIN}}
+
 	for {
-		timeout := time.Duration(-1)
+		timeout := -1
 		if port.readTimeout != NoTimeout {
-			timeout = time.Until(deadline)
+			timeout = int(time.Until(deadline).Milliseconds())
 			if timeout < 0 {
-				// a negative timeout means "no-timeout" in Select(...)
-				timeout = 0
+				return 0, nil
 			}
 		}
-		res, err := unixutils.Select(fds, nil, fds, timeout)
+		_, err := unix.Poll(fds, timeout)
 		if err == unix.EINTR {
 			continue
 		}
 		if err != nil {
 			return 0, err
 		}
-		if res.IsReadable(port.closeSignal.ReadFD()) {
-			return 0, &PortError{code: PortClosed}
+		if fds[0].Revents == 0 {
+			continue
 		}
-		if !res.IsReadable(port.handle) {
-			// Timeout happened
-			return 0, nil
+		if fds[0].Revents != unix.POLLIN {
+			return 0, &PortError{code: PortClosed}
 		}
 		n, err := unix.Read(port.handle, p)
 		if err == unix.EINTR {
@@ -213,7 +213,7 @@ func (port *unixPort) GetModemStatusBits() (*ModemStatusBits, error) {
 }
 
 func nativeOpen(portName string, mode *Mode) (*unixPort, error) {
-	h, err := unix.Open(portName, unix.O_RDWR|unix.O_NOCTTY|unix.O_NDELAY, 0)
+	h, err := syscall.Open(portName, unix.O_RDWR|unix.O_NOCTTY|unix.O_NDELAY, 0)
 	if err != nil {
 		switch err {
 		case unix.EBUSY:
@@ -439,7 +439,7 @@ func setRawMode(settings *unix.Termios) {
 	settings.Oflag &^= unix.OPOST
 
 	// Block reads until at least one char is available (no timeout)
-	settings.Cc[unix.VMIN] = 1
+	settings.Cc[unix.VMIN] = 0
 	settings.Cc[unix.VTIME] = 0
 }
 
