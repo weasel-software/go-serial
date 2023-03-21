@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"go.bug.st/serial"
 )
 
 func nativeGetDetailedPortsList() ([]*PortDetails, error) {

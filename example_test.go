@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-
-	"go.bug.st/serial"
 )
 
 // This example prints the list of serial ports and use the first one

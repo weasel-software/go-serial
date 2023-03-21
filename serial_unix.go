@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"go.bug.st/serial/unixutils"
+	"github.com/weasel-software/go-serial/unixutils"
 	"golang.org/x/sys/unix"
 )
 

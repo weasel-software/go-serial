@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	"go.bug.st/serial"
 )
 
 func ExampleGetSetModemBits() {

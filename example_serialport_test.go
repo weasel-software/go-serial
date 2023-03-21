@@ -9,8 +9,6 @@ package serial_test
 import (
 	"fmt"
 	"log"
-
-	"go.bug.st/serial"
 )
 
 func ExampleSerialPort_SetMode() {
